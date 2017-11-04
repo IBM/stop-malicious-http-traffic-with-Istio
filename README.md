@@ -1,15 +1,21 @@
 # Stop malicious http traffic with Istio
 It's always been a critical task to secure a your web services. In the world of microservices, it's been even more challenging. Many orchestration tools, like Kubernetes, lack the ability to detect and react to malicious attacks, especially at service/pod level. Fortunately the emerging of new technologies like Istio makes that task possible. 
 
-In this pattern, the malicious traffic we address is not the traditional Ddos attacks, which happens usually at layer 3 or 4.  Honestly, it's beyond the capability of either Kubernetes or Istio to deal with millions of requests per second. It is the job of the Infrastructure provider to address these problems. The malicious traffic we tackle is normally smaller in scale but more damaging to the services at layer 5-7.
+In this developer pattern, the malicious traffic we address is not the traditional Ddos attacks, which happens usually at layer 3 or 4.  Honestly, it's beyond the capability of either Kubernetes or Istio to deal with millions of requests per second. It is the job of the Infrastructure provider to address these problems. The malicious traffic we tackle is normally smaller in scale but more damaging to the services at layer 5-7.
 
 Below are the traffic scenarios this pattern is targeting:
 a. The client is using curl to frequently access the service. This is an indicator that the client is a bot than a customer, which normally uses web browser to access the service. Of course, there are other tools like "wget", but here we are just setting an example. Our solution will be if the curl happen too frequently, the service will be denied.    
 b. The client is accessing the service too frequently. This scenario is like a simple Ddos attack, where the client will access the services way more than human can process the information.  In this case, we also set a threshold. If the client goes over that limit, the IP address will be banned from accessing the service.   
 c. Hacking: The client will try to "guess" the common URI so it can either do sql injection or getting information out of the service. During the prep of this pattern, my cluster was actually attacked. Of course they got nothing but we all know now how real it is. The common symptom is they would try to access url/db or url/sql, and then get a 40x error from the server. The solution is to put a low threshold for 40x errors for each ip and block the ip if it goes over the threshold.
 
+In short, the malicioius traffic we will detect and stop is http traffic. And out goal is to stop them from accessing the web server, not to stop the traffic from network.
+
+## Included Components
+[Istio](https://istio.io)    
+[Kubernetes](https://kubernetes.io)
+
 ## Istio
-Istio project is an joint open source effort by Lyft, Google and IBM. Istio provides better management for service mesh. The benefits of Istio brings in are :
+Istio project is an joint open source effort by Lyft, Google and IBM. Istio provides better management for service mesh. The benefits of Istio brings in are :   
 a. Better insight of the cluster
 b. Policy enforcement at service/pod level
 c. Encrypted traffic between service/pods traffic
@@ -59,10 +65,17 @@ Try it out: From the terminal, run `curl http://*ip*/ip`. You should see the cli
 Now run `kubectl apply -f config/curl.yaml`    
 Then try again. Your request will be denied.   
 
-## Block phishing uris
+## Block URL manipulation
 This config again uses the quota adapter because we should allow certain amount of URI errors from one IP address. However if is too much, we need to block it.
 So the quota handler is applied on each ip address with the same response error. In this example, we choose 404 error. We could also do a fuzzy 40x error. But in reality, the web server will more than likely to respond with 404 error if the resource does not exist.
 
 Run from terminal `kubectl apply -f config/error.yaml`    
 Now try in a browser(in case you did not remove the curl ban): `http://*ip*/sql`    
 After 3 times, you should get the same denial as the first config.
+
+## Reference
+[Istio Mixer Documentation](https://istio.io/docs/concepts/policy-and-control/mixer.html)
+[How to write Istio Mixer Policies](https://medium.com/@szihai_37982/how-to-write-istio-mixer-policies-50dc639acf75)
+
+## License
+[Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
