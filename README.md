@@ -8,7 +8,7 @@ a. The client is using curl to frequently access the service. This is an indicat
 b. The client is accessing the service too frequently. This scenario is like a simple Ddos attack, where the client will access the services way more than human can process the information.  In this case, we also set a threshold. If the client goes over that limit, the IP address will be banned from accessing the service.   
 c. Hacking: The client will try to "guess" the common URI so it can either do sql injection or getting information out of the service. During the prep of this pattern, my cluster was actually attacked. Of course they got nothing but we all know now how real it is. The common symptom is they would try to access url/db or url/sql, and then get a 40x error from the server. The solution is to put a low threshold for 40x errors for each ip and block the ip if it goes over the threshold.
 
-In short, the malicioius traffic we will detect and stop is http traffic. And out goal is to stop them from accessing the web server, not to stop the traffic from network.
+In short, the malicious traffic we will detect and stop is http traffic. And our goal is to stop them from accessing the web server, not to stop the traffic from network.
 
 ## Included Components
 [Istio](https://istio.io)    
@@ -40,7 +40,7 @@ http://*url*/ip   and
 http://*url*/headers
 
 From the previous terminal, run `kubectl apply -f sample/httpbin.yaml`
-Since we have enabled Istio Initilizer, which will automatically deploy an Envoy sidecar to the pod, no more istioctl injection is needed here.
+Since we have enabled Istio Initializer, which will automatically deploy an Envoy sidecar to the pod, no more istioctl injection is needed here.
 Also we designated the httpbin service type as LoadBalancer, so we can access the service via its ip address.
 To access the service, run `kubectl get svc httpbin -o jsonpath='{.spec.ports[0].nodePort}'` to get the ip of the service. Then from a browser, try `http://*ip*/headers`
 
@@ -59,7 +59,7 @@ After that, try again. You should see an error message "Quota was exhausted."
 
 ## Ban curl command
 This config has the same structure as the last one. Of course the rules are different. First we directly call denier adapter and not going through quota since we'll directly deny all incoming requests using curl.   
-The second difference is that we do a fuzzy match ` match: match(request.headers["user-agent"], "curl*")` since curl has different versions so any user agent starts with "curl" will be blocked.
+The second difference is that we do a fuzzy match `match: match(request.headers["user-agent"], "curl*")` since curl has different versions so any user agent starts with "curl" will be blocked.
 
 Try it out: From the terminal, run `curl http://*ip*/ip`. You should see the client ip address.   
 Now run `kubectl apply -f config/curl.yaml`    
@@ -70,7 +70,7 @@ This config again uses the quota adapter because we should allow certain amount 
 So the quota handler is applied on each ip address with the same response error. In this example, we choose 404 error. We could also do a fuzzy 40x error. But in reality, the web server will more than likely to respond with 404 error if the resource does not exist.
 
 Run from terminal `kubectl apply -f config/error.yaml`    
-Now try in a browser(in case you did not remove the curl ban): `http://*ip*/sql`    
+Now try in a browser (in case you did not remove the curl ban): `http://*ip*/sql`    
 After 3 times, you should get the same denial as the first config.
 
 ## Reference
